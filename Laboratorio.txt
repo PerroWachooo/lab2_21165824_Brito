@@ -1,0 +1,7 @@
+%Tdas
+
+%Carpetas = []
+%Archivos = []
+%Systema  = []
+%Usuario  = []
+%Drives	  = []
