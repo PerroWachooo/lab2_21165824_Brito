@@ -23,3 +23,8 @@
 %adddrive
 
 %login
+
+%rf AAAAA yapo basti
+
+
+
