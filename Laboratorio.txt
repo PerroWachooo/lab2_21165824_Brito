@@ -28,10 +28,11 @@ getName_all([H|_], H).
 getContenido_all([_,C|_],C).
 getUsers_system([_,_,ListaUsuarios|_], ListaUsuarios).
 getUserlog_system([_,_,_,Userlog,_],Userlog).
+getUserPath_user([_,Path],Path).
 
 
 %Modificadores
-setContenido_system([Nombre,_|T],NewContenido, [Nombre,NewContenido|T]).
+setContenido_all([Nombre,_|T],NewContenido, [Nombre,NewContenido|T]).
 setUsers_system([Nombre,Contenido,_|T], NewUsuarios, [Nombre,Contenido,NewUsuarios|T]).
 setUserlog_system([Nombre,Contenido,Usuarios,_,Papelera], NewUsuariolog, [Nombre,Contenido,Usuarios,NewUsuariolog,Papelera]).
 
@@ -58,7 +59,7 @@ systemAddDrive(S,Letra,Nombre,Capacidad, Snew):-
     make_driver(Nombre,[],Letra,Capacidad,Driver),
     getContenido_all(S,Contenido),
     
-    setContenido_system(S,[Driver|Contenido],Snew).
+    setContenido_all(S,[Driver|Contenido],Snew).
 
 %R.4
 %systemRegister
@@ -114,21 +115,63 @@ systemLogin(S,UserName,Snew):-
 
 systemLogout(S_in, S_out):-
     getUserlog_system(S_in,Userlog), %Obtiene el usuario registrado
-    Userlog != [], %Comprueba que haya alguien con sesión iniciada
+    Userlog \= [], %Comprueba que haya alguien con sesión iniciada
     setUserlog(S_in, [], S_out). %Actualiza el sistema dejando al usuariolog como []
 
 
 %R.7
-%SystemsystemSwitchDrive
+%SystemSwitchDrive
 %Dominio: System X letter (char) X System
 %Descripcion: Permite fijar la unidad en la que el usuario realizará acciones. El predicado solo debe funcionar cuando 
 %hay un usuario con sesión iniciada en el sistema a partir del predicado SystemLogin.
 
 %Meta Primaria: 
 
-systemsystemSwitchDrive(S_in, Letra, S_out):-
+systemSwitchDrive(S_in, Letra, S_out):-
     getUserlog_system(S_in,Userlog), %Obtiene el usuario logueado
-    Userlog != [],	 				%comprueba que haya alguien con sesión iniciada (distinto de [])
+    Userlog \= [],	 				%comprueba que haya alguien con sesión iniciada (distinto de [])
     setPath_user(Userlog, [Letra], NewUserlog), %Se cambia la ruta del usuario con sesión iniciada a la letra del drive
     setUserlog_system(S_in,NewUserlog,S_out). %Se actualiza el sistema, cambiando el usuariologueado por su version actualizada
+
+
+
+
+
+
+
+
+%R.8 
+%systemMkdir
+%Dominio: System X name (String) X System
+%Descripcion: Crea un folder dentro de la ruta del usuario logueado.
+%Meta Primaria: SYstem
+%Meta secundaria: Usuariolog_path
+
+systemMkdir(S_in,Name,S_out):-
+    getUserlog_system(S_in,Userlog),
+    getUserPath_user(Userlog,Path),
+    
+    
+
+
+%insertarContenido
+%Dominio: Almacenimiento(Drives o folder), Contenido(Folder o Files), Ruta(Lista strings)
+
+%Caso base: cuando la ruta se termina de recorrer
+insertarContenido(Almacenimiento_in, Contenido_in, [],Almacenimiento_out):-
+    getContenido_all(Almacenimiento_in,Contenido_almacenimiento), %Se obtiene el contenido de la ruta esperada
+    append(Contenido_almacenimiento,[Contenido_in],Almacenimiento_out). %Se inserta el contenido en la lista de contenido
+    
+    
+    
+%   
+insertarContenido(Almacenimiento_in, Contenido, Ruta,Almacenimiento_out):-
+    
+    
+    
+
+
+
+%Pruebas:
+system("newSystem", S1), systemAddDrive(S1, "C", "OS", 10000000000, S2), systemRegister(S2, "user1", S3), systemRegister(S3, "user2", S4), systemLogin(S4, "user1", S5), systemSwitchDrive(S5, "C", S6),
 
