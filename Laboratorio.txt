@@ -12,7 +12,7 @@
 %Info: [ Fecha_Creacion(date) X Fecha_Modificacion(date) X Creador(Usuario) X Compartidos(List Usuarios) X Tamaño_byts(int) X Atriubutos(str) ]
 
 
-%Constuctores
+%------------------------------------------------------------- Constuctores -------------------------------------------------------------
 make_system(Nombre,Contenido,Usuarios, Usuario_log, Papelera, [Nombre,Contenido,Usuarios,Usuario_log,Papelera]).
 make_user(Nombre, Ruta, [Nombre, Ruta]).
 make_driver(Nombre, Contenido, Letra, Capacidad, [Nombre, Contenido, Letra, Capacidad]).
@@ -21,7 +21,7 @@ make_file(Nombre, Contenido, Formato,Fecha_C, Fecha_M, Creador, Compartidos, Tam
 
 
 
-%Selectores
+%------------------------------------------------------------- Selectores -------------------------------------------------------------
 getHead([H|_], H).
 getSecond([_,S|_],S).
 getName_all([H|_], H).
@@ -38,7 +38,7 @@ setUserlog_system([Nombre,Contenido,Usuarios,_,Papelera], NewUsuariolog, [Nombre
 
 setPath_user([Nombre,_],NewPath, [Nombre,NewPath]).
 
-%Requerimientos Funcionales 
+%------------------------------------------------------------- Requerimientos Funcionales -------------------------------------------------------------
 
 %R.2
 %system
