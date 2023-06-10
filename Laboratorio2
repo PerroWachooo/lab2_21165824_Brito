@@ -1,0 +1,198 @@
+%TDAS
+%System: [ List Nombre(str)  X Drivers(Driver) X Usuarios(List Usuario) X Usuario_log(Usuario),Papelera, Fecha]
+
+%User: [ Nombre(str) X Ruta(String) ]
+
+%Drivers: [  Nombre (str)X Contenido(Carpetas y Archivos) X Letra(str) XCapacidad(int) ]
+
+%folder: [ Nombre(str) X Contenido(Carpetas y Archivos) X Información(Informacion) ]
+
+%file: [ Nombre(Str) X Contenido(str/int) X Formato(str) X Infotmacion(informacion)
+
+%Info: [ Fecha_Creacion(date) X Fecha_Modificacion(date) X Creador(Usuario) X Compartidos(List Usuarios) X Tamaño_byts(int) X Atriubutos(str) ]
+
+
+%------------------------------------------------------------- Constuctores -------------------------------------------------------------
+make_system(Nombre,Contenido,Usuarios, Usuario_log, Papelera, Fecha, [Nombre,Contenido,Usuarios,Usuario_log,Papelera, Fecha]).
+make_user(Nombre, Ruta, [Nombre, Ruta]).
+make_driver(Nombre, Contenido, Letra, Capacidad, [Nombre, Contenido, Letra, Capacidad]).
+make_folder(Nombre,Contenido, Fecha_C, Fecha_M, Creador, Compartidos, Tamaño,[Nombre,Contenido, Fecha_C, Fecha_M, Creador, Compartidos, Tamaño]).
+make_file(Nombre, Contenido, Formato,Fecha_C, Fecha_M, Creador, Compartidos, Tamaño,[Nombre,Contenido,Formato, Fecha_C, Fecha_M, Creador, Compartidos, Tamaño]).
+
+obtener_fecha(Fecha) :-
+  get_time(Times),
+  stamp_date_time(Times, DateTime, local),
+  date_time_value(year, DateTime, Año),
+  date_time_value(month, DateTime, Mes),
+  date_time_value(day, DateTime, Dia),
+  Fecha = fecha(Año, Mes, Dia).    
+
+
+%------------------------------------------------------------- Selectores -------------------------------------------------------------
+getHead([H|_], H).
+getSecond([_,S|_],S).
+getName_all([H|_], H).
+getContenido_all([_,C|_],C).
+getUsers_system([_,_,ListaUsuarios|_], ListaUsuarios).
+getUserlog_system([_,_,_,Userlog,_,_],Userlog).
+getUserPath_user([_,Path],Path).
+
+
+%Modificadores
+setContenido_all([Nombre,_|T],NewContenido, [Nombre,NewContenido|T]).
+setUsers_system([Nombre,Contenido,_|T], NewUsuarios, [Nombre,Contenido,NewUsuarios|T]).
+setUserlog_system([Nombre,Contenido,Usuarios,_,Papelera,Fecha], NewUsuariolog, [Nombre,Contenido,Usuarios,NewUsuariolog,Papelera,Fecha]).
+
+setPath_user([Nombre,_],NewPath, [Nombre,NewPath]).
+
+%------------------------------------------------------------- Requerimientos Funcionales -------------------------------------------------------------
+
+%R.2
+%system
+%Dominio: name(String) X System
+%rPedicado constructor de un sistema. Deja registro de la fecha de creación.
+
+system(Name,S):-
+    obtener_fecha(Fecha),
+    make_system(Name,[],[],[],[],Fecha, S).
+
+%R.3
+%systemAddDrive
+%Dominio: System X letter (string | char) X name (String) X capacity (int) X System
+%Predicado que permite añadir una unidad a un sistema. La letra de la unidad debe ser única.
+
+systemAddDrive(S,Letra,Nombre,Capacidad, Snew):-
+    atom_length(Letra, 1), %se verifica que la letra solo sea un string de 1 de largo
+    
+    make_driver(Nombre,[],Letra,Capacidad,Driver),
+    getContenido_all(S,Contenido),
+    
+    setContenido_all(S,[Driver|Contenido],Snew).
+
+%R.4
+%systemRegister
+%Dominio: System X userName (String) X System
+%Predicado que permite registrar un nuevo usuario al sistema. El nombre de usuario es único y no puede ser duplicado.
+%Meta Primaria: Systema
+%Meta Secundaria: Nombre de Usuarios, Crear Usuario
+systemRegister(S, UserName, Snew):-
+    getUsers_system(S,ListaUsuarios), %Obtiene los usuarios registrados del sistema
+    existeNombre(ListaUsuarios,UserName), %Comprueba si el nombre ya esta en la lista de usuarios registros
+    make_user(UserName,[],NewUser), %Crea el usuario con ese nombre
+    append(ListaUsuarios, [NewUser], NewLista), %Crea la nueva lista con el usuario registrado
+    setUsers_system(S, NewLista, Snew). %Inserta Usuario en la lista de usuarios registrados en sistema 
+
+
+%existeNombre
+%Dominio: Lista de Contenido(Folder/Files) X Nombre
+%Descripcion: Verifica que el nombre que ingresaste sea igual a los nombres de los files o folder de la lista con Recurcion. False = Si existe, True = No Existe el nombre.
+%Meta Primaria: Nombre de Archivo
+
+existeNombre([],_). %Caso Base, no fue igual a nada, entonces entrega true
+    
+
+existeNombre([H|_],Nombre):-   %Segundo Caso: Si el archivo de cabeza tiene el mismo nombre que el argumento entrega falso
+    getName_all(H,NombreActual),
+    NombreActual == Nombre.
+
+    
+existeNombre([_|T],Nombre):- %Si no, se recorre la lista
+    existeNombre(T,Nombre).
+
+%R.5
+%systemLogin
+%Dominio:System X userName (String) X System
+%Descripcion: Función que permite iniciar sesión con un usuario del sistema, solo si éste existe.
+%Meta Primaria: UserName de systema
+
+
+systemLogin([Nombre,Contenido,Usuarios,[UserName|T],Papelera],UserName,[Nombre,Contenido,Usuarios,[UserName|T],Papelera]).%Caso en que el usuario ya tenga la sesion iniciada, devuelve el mismo sistema
+
+systemLogin(S,UserName,Snew):-
+    getUsers_system(S,ListaUsuarios), %Obtiene la lista de usuarios registrados
+    existeNombre(ListaUsuarios,UserName), %verifica que el usuario este registrado
+    make_user(UserName,[],NewUserlog), %Crea el usuario con el nombre
+    setUserlog_system(S,NewUserlog,Snew). %Actualiza el sistema
+    
+%R.6
+%systemLogout
+%Dominio:System X System
+%Descripcion: Función que permite cerrar sesión del usuario en el sistema. Si no hay sesión iniciada, se devuelve false
+%Meta Primaria: UserLog_system
+
+systemLogout(S_in, S_out):-
+    getUserlog_system(S_in,Userlog), %Obtiene el usuario registrado
+    Userlog \= [], %Comprueba que haya alguien con sesión iniciada
+    setUserlog(S_in, [], S_out). %Actualiza el sistema dejando al usuariolog como []
+
+
+%R.7
+%SystemSwitchDrive
+%Dominio: System X letter (char) X System
+%Descripcion: Permite fijar la unidad en la que el usuario realizará acciones. El predicado solo debe funcionar cuando 
+%hay un usuario con sesión iniciada en el sistema a partir del predicado SystemLogin.
+
+%Meta Primaria: 
+
+systemSwitchDrive(S_in, Letra, S_out):-
+    getUserlog_system(S_in,Userlog), %Obtiene el usuario logueado
+    Userlog \= [],	 				%comprueba que haya alguien con sesión iniciada (distinto de [])
+    setPath_user(Userlog, [Letra], NewUserlog), %Se cambia la ruta del usuario con sesión iniciada a la letra del drive
+    setUserlog_system(S_in,NewUserlog,S_out). %Se actualiza el sistema, cambiando el usuariologueado por su version actualizada
+
+
+
+
+
+
+
+
+%R.8 
+%systemMkdir
+%Dominio: System X name (String) X System
+%Descripcion: Crea un folder dentro de la ruta del usuario logueado.
+%Meta Primaria: SYstem
+%Meta secundaria: Usuariolog_path
+
+systemMkdir(S_in,Name,S_out):-
+    getUserlog_system(S_in,Userlog), %Obtiene usuario logueado
+    getUserPath_user(Userlog,Path), %Obtiene la ruta en la que se encuentra el usuario
+    getUsers_system(S_in,Users), %Obtiene los usuarios credos en el sistem
+    make_folder(Name, [], "", "",Userlog,Users,0,NewFolder), %Crea la nueva carpeta vacia, solo con el nombre, sin fecha de creacion,mod ni tamaño
+    insertarContenido(S_in,NewFolder,Path,S_out).
+    
+    
+
+
+%insertarContenido
+%Dominio: List_in(Drives o folder o system), Contenido(Folder o Files), Ruta(Lista strings)
+
+%Caso base: cuando la ruta se termina de recorrer
+insertarContenido(List_in, Contenido, [],Almacenimiento_out):-
+    getContenido_all(List_in,Contenido_in), %Se obtiene el contenido de la ruta esperada
+    append(Contenido_in,[Contenido],NewContenido), %Se inserta el contenido en la lista de contenido
+    setContenido_all(List_in,NewContenido,Almacenimiento_out). %Se setea el contenido, de la lista de entrada con el nuevo contenido
+    
+    
+%   Primer llamado
+insertarContenido(List_in, Contenido, Ruta, List_out):-
+    getContenido_all(List_in,Contenido_in), %Se obtiene el contenido del sistema/drive/carpeta
+    getHead(List_in,Head_List), %Se prueba con el primer
+    getName_all(Head_List,NameHeadList),
+    getHead(Ruta,NameRuta),
+    NameHeadList == NameRuta,
+    getTail(Ruta,Ruta_tail),
+    insertarContenido(Contenido_in,Contenido,Ruta_tail,Almacenimiento_out),
+    setContenido_all(List_in,Almacenimiento_out,List_out).
+
+
+
+
+
+
+
+
+
+
+%Pruebas:
+system("newSystem", S1), systemAddDrive(S1, "C", "OS", 10000000000, S2), systemRegister(S2, "user1", S3), systemRegister(S3, "user2", S4), systemLogin(S4, "user1", S5), systemSwitchDrive(S5, "C", S6),
