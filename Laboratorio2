@@ -9,15 +9,15 @@
 
 %file: [ Nombre(Str) X Contenido(str/int) X Formato(str) X Infotmacion(informacion)
 
-%Info: [ Fecha_Creacion(date) X Fecha_Modificacion(date) X Creador(Usuario) X Compartidos(List Usuarios) X Tamaño_byts(int) X Atriubutos(str) ]
+%Info: [ Fecha_Creacion(date) X Fecha_Modificacion(date) X Creador(Usuario) X Compartidos(List Usuarios) X Tamaño_byts(int)]
 
 
 %------------------------------------------------------------- Constuctores -------------------------------------------------------------
 make_system(Nombre,Contenido,Usuarios, Usuario_log, Papelera, Fecha, [Nombre,Contenido,Usuarios,Usuario_log,Papelera, Fecha]).
 make_user(Nombre, Ruta, [Nombre, Ruta]).
-make_driver(Nombre, Contenido, Letra, Capacidad, [Nombre, Contenido, Letra, Capacidad]).
-make_folder(Nombre,Contenido, Fecha_C, Fecha_M, Creador, Compartidos, Tamaño,[Nombre,Contenido, Fecha_C, Fecha_M, Creador, Compartidos, Tamaño]).
-make_file(Nombre, Contenido, Formato,Fecha_C, Fecha_M, Creador, Compartidos, Tamaño,[Nombre,Contenido,Formato, Fecha_C, Fecha_M, Creador, Compartidos, Tamaño]).
+make_driver(Nombre, Contenido, Letra, Capacidad, [Letra, Contenido, Nombre,  Capacidad]).
+make_folder(Nombre,Contenido, Fecha_C, Fecha_M, Creador, Compartidos, Tamano,[Nombre,Contenido, Fecha_C, Fecha_M, Creador, Compartidos, Tamano]).
+make_file(Nombre, Contenido, Formato,Fecha_C, Fecha_M, Creador, Compartidos, Tamano,[Nombre,Contenido,Formato, Fecha_C, Fecha_M, Creador, Compartidos, Tamano]).
 
 obtener_fecha(Fecha) :-
   get_time(Times),
@@ -30,19 +30,23 @@ obtener_fecha(Fecha) :-
 
 %------------------------------------------------------------- Selectores -------------------------------------------------------------
 getHead([H|_], H).
+getTail([_|T],T).
 getSecond([_,S|_],S).
 getName_all([H|_], H).
 getContenido_all([_,C|_],C).
 getUsers_system([_,_,ListaUsuarios|_], ListaUsuarios).
 getUserlog_system([_,_,_,Userlog,_,_],Userlog).
+getUserlogPath_system([_,_,_,[_,Path],_,_],Path).
 getUserPath_user([_,Path],Path).
 
 
-%Modificadores
+%------------------------------------------------------------- Modificadores -------------------------------------------------------------
 setContenido_all([Nombre,_|T],NewContenido, [Nombre,NewContenido|T]).
 setUsers_system([Nombre,Contenido,_|T], NewUsuarios, [Nombre,Contenido,NewUsuarios|T]).
 setUserlog_system([Nombre,Contenido,Usuarios,_,Papelera,Fecha], NewUsuariolog, [Nombre,Contenido,Usuarios,NewUsuariolog,Papelera,Fecha]).
-
+setUserlogPath_system([Nombre,Contenido,Usuarios,[NameUserlog,_],Papelera,Fecha], Path, [Nombre,Contenido,Usuarios,[NameUserlog,Path],Papelera,Fecha]).
+setUsers_file([Nombre,Contenido,Formato, Fecha_C, Fecha_M, Creador, _, Tamano],NewUsers,[Nombre,Contenido,Formato, Fecha_C, Fecha_M, Creador, NewUsers, Tamano]).
+setUsercreador_file([Nombre,Contenido,Formato, Fecha_C, Fecha_M, _, Compartidos, Tamano],NewCreador,[Nombre,Contenido,Formato, Fecha_C, Fecha_M, NewCreador, Compartidos, Tamano]).
 setPath_user([Nombre,_],NewPath, [Nombre,NewPath]).
 
 %------------------------------------------------------------- Requerimientos Funcionales -------------------------------------------------------------
@@ -99,6 +103,9 @@ existeNombre([H|_],Nombre):-   %Segundo Caso: Si el archivo de cabeza tiene el m
 existeNombre([_|T],Nombre):- %Si no, se recorre la lista
     existeNombre(T,Nombre).
 
+
+
+
 %R.5
 %systemLogin
 %Dominio:System X userName (String) X System
@@ -106,14 +113,19 @@ existeNombre([_|T],Nombre):- %Si no, se recorre la lista
 %Meta Primaria: UserName de systema
 
 
-systemLogin([Nombre,Contenido,Usuarios,[UserName|T],Papelera],UserName,[Nombre,Contenido,Usuarios,[UserName|T],Papelera]).%Caso en que el usuario ya tenga la sesion iniciada, devuelve el mismo sistema
+%Caso en que el usuario ya tenga la sesion iniciada, devuelve el mismo sistema
+systemLogin([Nombre,Contenido,Usuarios,[UserName|T],Papelera],UserName,[Nombre,Contenido,Usuarios,[UserName|T],Papelera]).
 
+%Caso en que hay un usuario con sesion y se quiera cerrar
 systemLogin(S,UserName,Snew):-
     getUsers_system(S,ListaUsuarios), %Obtiene la lista de usuarios registrados
     existeNombre(ListaUsuarios,UserName), %verifica que el usuario este registrado
     make_user(UserName,[],NewUserlog), %Crea el usuario con el nombre
     setUserlog_system(S,NewUserlog,Snew). %Actualiza el sistema
     
+
+
+
 %R.6
 %systemLogout
 %Dominio:System X System
@@ -123,7 +135,10 @@ systemLogin(S,UserName,Snew):-
 systemLogout(S_in, S_out):-
     getUserlog_system(S_in,Userlog), %Obtiene el usuario registrado
     Userlog \= [], %Comprueba que haya alguien con sesión iniciada
-    setUserlog(S_in, [], S_out). %Actualiza el sistema dejando al usuariolog como []
+    setUserlog_system(S_in, [], S_out). %Actualiza el sistema dejando al usuariolog como []
+
+
+
 
 
 %R.7
@@ -152,38 +167,127 @@ systemSwitchDrive(S_in, Letra, S_out):-
 %Dominio: System X name (String) X System
 %Descripcion: Crea un folder dentro de la ruta del usuario logueado.
 %Meta Primaria: SYstem
-%Meta secundaria: Usuariolog_path
+%Meta secundaria: Usuariolog_path,UserLog,Users
 
 systemMkdir(S_in,Name,S_out):-
     getUserlog_system(S_in,Userlog), %Obtiene usuario logueado
     getUserPath_user(Userlog,Path), %Obtiene la ruta en la que se encuentra el usuario
-    getUsers_system(S_in,Users), %Obtiene los usuarios credos en el sistem
-    make_folder(Name, [], "", "",Userlog,Users,0,NewFolder), %Crea la nueva carpeta vacia, solo con el nombre, sin fecha de creacion,mod ni tamaño
-    insertarContenido(S_in,NewFolder,Path,S_out).
+    getUsers_system(S_in,Users), %Obtiene los usuarios credos en el sistema
+    obtener_fecha(Fecha),
+    make_folder(Name, [], Fecha, Fecha, Userlog,Users,0,NewFolder), %Crea la nueva carpeta vacia, solo con el nombre, sin fecha de creacion,mod ni tamaño
+    insertarcontenido(S_in,NewFolder,Path,S_out).
     
+
     
 
 
-%insertarContenido
+%insertarcontenido
 %Dominio: List_in(Drives o folder o system), Contenido(Folder o Files), Ruta(Lista strings)
 
 %Caso base: cuando la ruta se termina de recorrer
-insertarContenido(List_in, Contenido, [],Almacenimiento_out):-
+insertarcontenido(List_in, Contenido, [],Almacenimiento_out):-
     getContenido_all(List_in,Contenido_in), %Se obtiene el contenido de la ruta esperada
     append(Contenido_in,[Contenido],NewContenido), %Se inserta el contenido en la lista de contenido
     setContenido_all(List_in,NewContenido,Almacenimiento_out). %Se setea el contenido, de la lista de entrada con el nuevo contenido
     
     
 %   Primer llamado
-insertarContenido(List_in, Contenido, Ruta, List_out):-
+insertarcontenido(List_in, Contenido, Ruta, List_out):-
     getContenido_all(List_in,Contenido_in), %Se obtiene el contenido del sistema/drive/carpeta
-    getHead(List_in,Head_List), %Se prueba con el primer
-    getName_all(Head_List,NameHeadList),
     getHead(Ruta,NameRuta),
-    NameHeadList == NameRuta,
-    getTail(Ruta,Ruta_tail),
-    insertarContenido(Contenido_in,Contenido,Ruta_tail,Almacenimiento_out),
-    setContenido_all(List_in,Almacenimiento_out,List_out).
+    
+    estaenlalista(Contenido_in,NameRuta,CarpetaAExplorar),%Se queda con el drive o folder que indica la ruta
+    noestaenlalista(Contenido_in,NameRuta,Resto), %Se queda con todo lo demas que no sea la carpeta que indica la ruta
+    
+    getTail(Ruta,Ruta_tail), %Se obtiene la ruta sin la cabeza
+    insertarcontenido(CarpetaAExplorar,Contenido,Ruta_tail,Almacenimiento_out),
+    setContenido_all(List_in,[Almacenimiento_out|Resto],List_out).
+
+
+
+
+%estaenlalista
+%Dom: lista de sublistas, nombre de elemento
+%Desc: Busca entre los elementos de la lista, los que seanigual al segundo argumento
+%En caso en que no haya nada arroja falso
+estaenlalista([],_,_):-
+    false.
+
+%Caso en que sea el primer elemento
+estaenlalista([[H|T1]|_],H,[H|T1]).
+
+%Caso en que no ese en el primer elemento, llamado recursivo
+estaenlalista([_|T],H,X):-
+    estaenlalista(T,H,X).
+
+
+
+
+%noestaenlalista
+%Dom: lista de sublistas X nombre de elemento
+%Desc: Busca entre los elementos de la lista, los que no sean igual al segundo argumento
+
+%Caso de parada, no hay nada mas en la lista
+noestaenlalista([],_,[]).
+
+%Caso en que lo que no queremos este en el primer elemento de la lista, se devuelve todo menos ese elemento
+noestaenlalista([[H|_]|T2],H,T2).
+    
+
+%Caso en que el elemento pueda estar en la demas lista
+noestaenlalista([[Nh|Nt]|T],H,[[Nh|Nt]|X]):-
+    noestaenlalista(T,H,X).
+
+%Caso en que el elemento no se encuentre en la lista
+noestaenlalista([[Nh|Nt]],H,[Nh|Nt]).
+    
+
+
+
+
+%R.F 9
+%systemCd
+%Dominio: System X path or folderName (String) X System
+% Descripcion: Predicado que permite cambiar la ruta (path) donde se realizarán las próximas operaciones, cd permite cambiarse a un directorio especificado a partir de la ruta señalada en un String. Además, contará con los comodines especiales: “.”, “..” y “/” (se usa slash en lugar de backslash) que permitirán referirse a la carpeta actual, regresar a la carpeta del nivel anterior siguiendo la ruta actual del usuario y volver a la raíz de la unidad respectivamente.
+
+%Casos que te dejan donde mismo
+systemCd(S_in,".",S_in).
+systemCd(S_in,"./",S_in).
+systemCd(S_in,"./././.",S_in).  
+
+%Caso de regresar a la carpeta anterior (se invierte la lista y se saca el primer elemento, que seria la ruta en que se estaba, se vuelve a invertir y se setea la ruta)
+systemCd(S_in,"..",S_out):-
+    getUserlogPath_system(S_in,Path),
+    invertir_lista(Path, Path_invertido),
+    getTail(Path_invertido,TailPathInvertido),
+    invertir_lista(TailPathInvertido,NewPath),
+    setUserlogPath_system(S_in,NewPath,S_out).
+
+
+%Caso de regresar a la raiz, se cambia la ruta por el primer elemento de la lista que es la unidad y se setea la ruta
+systemCd(S_in,"/",S_out):-
+    getUserlogPath_system(S_in,Path),
+    getHead(Path,Head_path),
+    setUserlogPath_system(S_in,[Head_path],S_out),
+    !.
+	
+
+
+%Caso en que sea el nombre visible o "nombre1/nombre11"
+systemCd(S_in,String,S_out):-
+    dividir_string_por_slash(String, ListaString),
+    getUserlogPath_system(S_in,Path),
+    append(Path,ListaString,NewPath),
+    rutaexiste(S_in,NewPath), %Comprueba que la ruta exista
+    setUserlogPath_system(S_in,NewPath,S_out),
+    !.
+
+%Caso en que se ingrese un path desde la raiz
+systemCd(S_in,String,S_out):-
+    dividir_string_por_slash(String, NewPath),
+    rutaexiste(S_in,NewPath), %Comprueba que la ruta exista
+    setUserlogPath_system(S_in,NewPath,S_out),
+    !.
 
 
 
@@ -194,5 +298,171 @@ insertarContenido(List_in, Contenido, Ruta, List_out):-
 
 
 
-%Pruebas:
-system("newSystem", S1), systemAddDrive(S1, "C", "OS", 10000000000, S2), systemRegister(S2, "user1", S3), systemRegister(S3, "user2", S4), systemLogin(S4, "user1", S5), systemSwitchDrive(S5, "C", S6),
+
+%rutaexiste
+%Dom: Lista(System/drive/folder) X Path
+%Recorre el system con la ruta dada, si existe entrega true, si la ruta no existe, entrega false
+
+%Caso en que la lista tenga algo, pero la rutaa se termina de recorrer, por lo tanto existe
+rutaexiste(_,[]).
+%Caso en que la ruta no se termina de recorrer
+rutaexiste(List_in,[HeadRuta|TailRuta]):-
+    getContenido_all(List_in,Contenido_in), %Se obtiene el contenido del sistema/drive/carpeta
+    estaenlalista(Contenido_in,HeadRuta,CarpetaAExplorar),%Se queda con el drive o folder que indica la ruta
+    rutaexiste(CarpetaAExplorar,TailRuta).
+
+
+
+
+blank(Arg):-
+    Arg == "".
+
+%dividir_string_por_slash
+%Dom: string X Lista
+dividir_string_por_slash(String, Lista):-
+    split_string(String, '/',":", Lista1),
+    exclude(blank,Lista1,Lista).
+
+%dividir_string_por_punto
+%Dom: string X Lista
+dividir_string_por_punto(String, Lista) :-
+    split_string(String, '.',"", Lista).
+
+
+
+%invertir_lista
+%Dom: Lista X Lista
+%Decripcion: da vuelta la lista.
+
+%Caso base, termina de recorrerla
+invertir_lista([], []).
+
+%Llamado recursivo, deja el primer elemento como ultimo y hace el llamado con lo que quede de lista
+invertir_lista([X|Resto], ListaInvertida) :-
+    invertir_lista(Resto, RestoInvertido),
+    append(RestoInvertido, [X], ListaInvertida).
+
+
+%R.F 10
+%systemAddFile
+%Dominio: System X file X System
+%Descripcion: Predicado que permite añadir un archivo en la ruta actual.
+
+systemAddFile(S_in,File,S_out):-
+    getUsers_system(S_in,Usuarios),
+    getUserlog_system(S_in,Creador),
+    getUserlogPath_system(S_in,Path),
+    setUsercreador_file(File,Creador,File1),
+    setUsers_file(File1,Usuarios,NewFile),
+    insertarfile(S_in,NewFile,Path,S_out).
+    
+
+%insertarfile
+%Dominio: List_in(Drives o folder o system), Contenido(Folder o Files), Ruta(Lista strings)
+
+%Caso base1: cuando la ruta se termina de recorrer, pero el archivo esta repetido
+insertarfile(List_in, Contenido, [],Almacenimiento_out):-
+    getContenido_all(List_in,Contenido_in), %Se obtiene el contenido de la ruta esperada
+    getName_all(Contenido,NameContenido),
+    estaenlalista(Contenido_in,NameContenido,_), %Si encuentra que hay un archivo con ese nombre que siga con lo demas
+    noestaenlalista(Contenido_in,NameContenido,Resto), %saca todo menos el archivo repetid
+    append(Resto,[Contenido],NewContenido), %Se inserta el nuevo file en la lista de contenido
+    setContenido_all(List_in,NewContenido,Almacenimiento_out). %Se setea el contenido, de la lista de entrada con el nuevo contenido
+
+%Caso base2 : El file no existe
+insertarfile(List_in, Contenido, [],Almacenimiento_out):-
+    getContenido_all(List_in,Contenido_in), %Se obtiene el contenido de la ruta esperada    
+    append(Contenido_in,[Contenido],NewContenido), %Se inserta el nuevo file en la lista de contenido
+    setContenido_all(List_in,NewContenido,Almacenimiento_out). %Se setea el contenido, de la lista de entrada con el nuevo contenido
+    
+    
+%   Primer llamado
+insertarfile(List_in, Contenido, Ruta, List_out):-
+    getContenido_all(List_in,Contenido_in), %Se obtiene el contenido del sistema/drive/carpeta
+    getHead(Ruta,NameRuta),
+    
+    estaenlalista(Contenido_in,NameRuta,CarpetaAExplorar),%Se queda con el drive o folder que indica la ruta
+    noestaenlalista(Contenido_in,NameRuta,Resto), %Se queda con todo lo demas que no sea la carpeta que indica la ruta
+    
+    getTail(Ruta,Ruta_tail), %Se obtiene la ruta sin la cabeza
+    insertarfile(CarpetaAExplorar,Contenido,Ruta_tail,Almacenimiento_out),
+    setContenido_all(List_in,[Almacenimiento_out|Resto],List_out).
+
+
+file(Nombre,Contenido,File):-
+    dividir_string_por_punto(Nombre, ListaNombre), %transforma el nombre del archivo "nombre.tipo", en una lista de [nombre, tipo]
+    invertir_lista(ListaNombre, ListaNombreInvertida), %Da vuelta la lista a [tipo,nombre]
+    getHead(ListaNombreInvertida,Formato), %Ese seria el formato: como los archivos son del tipo "nombre.tipo"---->entonces esto seria el ".tipo"
+    obtener_fecha(Fecha),
+
+    make_file(Nombre, Contenido, Formato,Fecha, Fecha, [], [], 100,File).
+
+
+
+%systemDel
+%Dominio: System X fileName or fileNamePattern (string) X System
+%Descripcion: Predicado para eliminar un archivo o varios archivos en base a un patrón determinado. Esta versión también puede eliminar una carpeta completa con todos sus subdirectorios. El contenido eliminado se va a la papelera.
+
+%Caso en querer borrar una carpeta o file por su nombre
+systemaDel(S_in, Nombre,S_out):-
+    getUserPath_user(S_in,Path),
+    eliminar(S_in,Nombre,Path,S_out).
+
+%Casos en querer borrar todo el contenido del directorio actual
+systemDel(S_in, "*.*",S_out):-
+    getUserPath_user(S_in,Path),
+    formatear(S_in,Path,S_out).
+
+systemDel(S_in, "*",S_out):-
+    getUserPath_user(S_in,Path),
+    formatear(S_in,Path,S_out).
+
+
+%eliminar
+%Dominio: List_in(Drives o folder o system), nombre, Ruta(Lista strings)
+
+%Caso base: cuando la ruta se termina de recorrer, y se busca donde eliminar
+eliminar(List_in, Nombre, [],Almacenimiento_out):-
+    getContenido_all(List_in,Contenido_in), %Se obtiene el contenido de la ruta esperada
+    noestaenlalista(Contenido_in,Nombre,NewContenido), %Deja solo los elementos que no sean lo que se quiere eliminar.
+    setContenido_all(List_in,NewContenido,Almacenimiento_out). %Se setea el contenido, de la lista de entrada con el nuevo contenido
+    
+    
+%   Primer llamado
+eliminar(List_in, Nombre, Ruta, List_out):-
+    getContenido_all(List_in,Contenido_in), %Se obtiene el contenido del sistema/drive/carpeta
+    getHead(Ruta,NameRuta), %Se obtiene la ruta a recorrer
+    
+    estaenlalista(Contenido_in,NameRuta,CarpetaAExplorar),%Se queda con el drive o folder que indica la ruta
+    noestaenlalista(Contenido_in,NameRuta,Resto), %Se queda con todo lo demas que no sea la carpeta que indica la ruta
+    
+    getTail(Ruta,Ruta_tail), %Se obtiene la ruta sin la cabeza
+    eliminar(CarpetaAExplorar,Nombre,Ruta_tail,Almacenimiento_out), %Se hace el llamado recursivo con el resto de la ruta para que siga recorriendo
+    setContenido_all(List_in,[Almacenimiento_out|Resto],List_out).     %Setea el contenido
+
+
+%formatear
+%Dominio: List_in(Drives o folder o system), nombre, Ruta(Lista strings)
+
+%Caso base: cuando la ruta se termina de recorrer, se llega donde se quiere eliminar el contenido
+formatear(List_in, [],Almacenimiento_out):-
+	setContenido_all(List_in,[],Almacenimiento_out). %Se setea el contenido, de la lista de entrada con lista vacia
+    
+    
+%   Primer llamado
+formatear(List_in, Ruta, List_out):-
+    getContenido_all(List_in,Contenido_in), %Se obtiene el contenido del sistema/drive/carpeta
+    getHead(Ruta,NameRuta), %Se obtiene la ruta a recorrer
+    
+    estaenlalista(Contenido_in,NameRuta,CarpetaAExplorar),%Se queda con el drive o folder que indica la ruta
+    noestaenlalista(Contenido_in,NameRuta,Resto), %Se queda con todo lo demas que no sea la carpeta que indica la ruta
+    
+    getTail(Ruta,Ruta_tail), %Se obtiene la ruta sin la cabeza
+    formatear(CarpetaAExplorar,Ruta_tail,Almacenimiento_out), %Se hace el llamado recursivo con el resto de la ruta para que siga recorriendo
+    setContenido_all(List_in,[Almacenimiento_out|Resto],List_out).     %Setea el contenido
+
+
+
+
+%Prueba
+%system("newSystem", S1), systemAddDrive(S1, "C", "OS", 10000000000, S2), systemRegister(S2, "user1", S3), systemRegister(S3, "user2", S4), systemLogin(S4, "user1", S5), systemSwitchDrive(S5, "C", S6),systemMkdir(S6, "folder1", S7),systemMkdir(S7, "folder2", S8), systemCd(S8, "folder1", S9),systemMkdir(S9, "folder11", S10).

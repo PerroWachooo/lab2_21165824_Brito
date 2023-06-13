@@ -1,0 +1,12 @@
+Para usar el sistema de archivos, primero se tiene que abrir un compilador de prolog y consultar en
+el archivo en donde se encuentre todo definido, después puede hacer uso del script de pruebas
+para probar funciones ya hechas, si no, puede escribir sus propias consultas, pero tiene que
+considerar las siguientes. Siempre se tiene que empezar creando un sistema, registrar a un usuario
+e ingresar sesión con éste, de ahí en adelante, puede hacer uso de cualquier función
+implementada, esto funciona como un simulador de archivos, así que puede crear carpetas,
+archivos, moverlos, borrarlos como el usuario desee. En caso de que algo no sea como debe, el
+programa le retorna falso. El sistema no es case sensitive, por lo que, si se ingresa algo con un
+nombre, al momento de manipularlo con las funciones, tendrá que llamarlo de la misma manera en
+que fue ingresado, si no, fallara. Todo lo que sea nombres o rutas tendrán que ser ingresados
+como strings. Por último, después de cada consulta, haga un break, ya que el compilador seguirá
+buscando respuestas.
